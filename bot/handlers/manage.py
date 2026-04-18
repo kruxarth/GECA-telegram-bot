@@ -34,6 +34,7 @@ async def add_uploader(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
 
     try:
         await database.add_uploader(user_id)
+        logger.info("UPLOADER ADDED | by=%s | new_uploader=%s", update.effective_user.id, user_id)
         await update.message.reply_text(f"Done. {user_id} can now upload documents.")
     except httpx.HTTPStatusError as e:
         if e.response.status_code == 409:
@@ -60,6 +61,7 @@ async def remove_uploader(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     try:
         removed = await database.remove_uploader(user_id)
         if removed:
+            logger.info("UPLOADER REMOVED | by=%s | removed_uploader=%s", update.effective_user.id, user_id)
             await update.message.reply_text(f"Removed. {user_id} can no longer upload.")
         else:
             await update.message.reply_text(f"{user_id} wasn't in the uploader list.")

@@ -37,10 +37,13 @@ async def _can_upload(user_id: int) -> bool:
 
 
 async def upload_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    if not await _can_upload(update.effective_user.id):
+    user = update.effective_user
+    if not await _can_upload(user.id):
+        logger.warning("UPLOAD DENIED | user=%s (@%s)", user.id, user.username or "no_username")
         await update.message.reply_text("You are not authorized to upload documents.")
         return ConversationHandler.END
 
+    logger.info("UPLOAD START | user=%s (@%s)", user.id, user.username or "no_username")
     context.user_data.clear()
     await update.message.reply_text(
         "Starting upload.\n\n"
@@ -128,6 +131,12 @@ async def got_file(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
 
     try:
         result = await database.insert_document(data)
+        logger.info(
+            "UPLOAD SAVED | user=%s (@%s) | file=%s | branch=%s sem=%s year=%s type=%s | id=%s",
+            update.effective_user.id, update.effective_user.username or "no_username",
+            data["file_name"], data["subject"], data["semester"],
+            data["year"] or "—", data["doc_type"], result["id"],
+        )
         await update.message.reply_text(
             f"Saved!\n\n"
             f"Subject: {data['subject']}\n"
@@ -137,7 +146,10 @@ async def got_file(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
             f"ID: {result['id']}"
         )
     except Exception as e:
-        logger.error("Failed to save document: %s", e)
+        logger.error(
+            "UPLOAD FAILED | user=%s | file=%s | error=%s",
+            update.effective_user.id, data["file_name"], e,
+        )
         await update.message.reply_text("Failed to save. Check logs.")
 
     return ConversationHandler.END

@@ -50,7 +50,13 @@ async def search(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     semester = int(match.group("sem"))
     year = int(match.group("year")) if match.group("year") else None
 
+    user = update.effective_user
     year_str = f" {year}" if year else ""
+    logger.info(
+        "SEARCH | user=%s (@%s) | query=%s sem %d%s",
+        user.id, user.username or "no_username", subject, semester, year_str,
+    )
+
     msg = await update.message.reply_text(
         f"Searching for {subject} Sem {semester}{year_str}..."
     )
@@ -58,16 +64,19 @@ async def search(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     try:
         results = await database.search_documents(subject, semester, year)
     except Exception as e:
-        logger.error("Search failed: %s", e)
+        logger.error("SEARCH FAILED | user=%s | query=%s sem %d%s | error=%s", user.id, subject, semester, year_str, e)
         await msg.edit_text("Search failed. Please try again.")
         return
 
     if not results:
+        logger.info("SEARCH NO RESULTS | user=%s | query=%s sem %d%s", user.id, subject, semester, year_str)
         await msg.edit_text(
             f"No documents found for {subject} Sem {semester}{year_str}.\n"
             "Try a different subject name or semester."
         )
         return
+
+    logger.info("SEARCH HIT | user=%s | query=%s sem %d%s | results=%d", user.id, subject, semester, year_str, len(results))
 
     text = f"Found {len(results)} result(s) for {subject} Sem {semester}{year_str}:\n\n"
     buttons = []
