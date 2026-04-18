@@ -32,9 +32,9 @@ async def search(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
             "Branches: MECH · ENTC · EEP · CSE · MCA · MTECH · IT · CIVIL\n\n"
             "Examples:\n"
             "  /search CSE sem 4\n"
-            "  /search CSE sem 3 2024\n"
+            "  /search CSE sem 3 2025\n"
             "  /search MECH sem 3\n"
-            "  /search ENTC sem 5 2023"
+            "  /search ENTC sem 5 2025"
         )
         return
 

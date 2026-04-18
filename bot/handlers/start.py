@@ -8,7 +8,7 @@ WELCOME = (
     "Available branches: MECH · ENTC · EEP · CSE · MCA · MTECH · IT · CIVIL\n\n"
     "Use /search to find documents.\n\n"
     "Example:\n"
-    "  /search CSE sem 4 2024\n\n"
+    "  /search CSE sem 4 2025\n\n"
     "Type /help for full usage guide."
 )
 

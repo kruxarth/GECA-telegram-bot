@@ -70,7 +70,7 @@ async def got_semester(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
     context.user_data["semester"] = int(text)
     keyboard = [[InlineKeyboardButton("Skip", callback_data="year_skip")]]
     await update.message.reply_text(
-        "Which year? (e.g. 2024) — or tap Skip:",
+        "Which year? (e.g. 2025) — or tap Skip:",
         reply_markup=InlineKeyboardMarkup(keyboard),
     )
     return YEAR
@@ -79,7 +79,7 @@ async def got_semester(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
 async def got_year_text(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     text = update.message.text.strip()
     if not text.isdigit() or len(text) != 4:
-        await update.message.reply_text("Enter a 4-digit year (e.g. 2024) or tap Skip.")
+        await update.message.reply_text("Enter a 4-digit year (e.g. 2026) or tap Skip.")
         return YEAR
 
     context.user_data["year"] = int(text)
