@@ -27,11 +27,13 @@ async def search(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     query = " ".join(context.args).strip()
     if not query:
         await update.message.reply_text(
-            "Usage: /search <branch/subject> sem <number> [year]\n\n"
+            "Usage: /search <branch> sem <number> [year]\n\n"
+            "Branches: MECH · ENTC · EEP · CSE · MCA · MTECH · IT · CIVIL\n\n"
             "Examples:\n"
-            "  /search CSE sem 5\n"
-            "  /search CSE sem 5 2024\n"
-            "  /search Mechanical sem 3"
+            "  /search CSE sem 4\n"
+            "  /search CSE sem 3 2024\n"
+            "  /search MECH sem 3\n"
+            "  /search ENTC sem 5 2023"
         )
         return
 

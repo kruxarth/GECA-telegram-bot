@@ -42,7 +42,11 @@ async def upload_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
 
     context.user_data.clear()
     await update.message.reply_text(
-        "Starting upload.\n\nWhat is the branch or subject name? (e.g. CSE, Mechanical, Physics)"
+        "Starting upload.\n\n"
+        "What is the branch name?\n"
+        "Available branches: MECH · ENTC · EEP · CSE · MCA · MTECH · IT · CIVIL\n\n"
+        "Tip: for a semester bundle, collect all question papers for that sem into\n"
+        "a single PDF or ZIP before uploading, then choose 'Paper Bundle' as the type."
     )
     return SUBJECT
 
