@@ -18,9 +18,10 @@ logger = logging.getLogger(__name__)
 SUBJECT, SEMESTER, YEAR, DOC_TYPE, FILE = range(5)
 
 DOC_TYPE_OPTIONS = [
-    ("Class Test", "class_test"),
+    ("Class Test 1", "class_test_1"),
+    ("Class Test 2", "class_test_2"),
     ("End Sem PYQ", "end_sem"),
-    ("Paper Set", "bundle"),
+    ("Paper Bundle", "bundle"),
     ("Notes", "notes"),
 ]
 

@@ -16,7 +16,8 @@ QUERY_RE = re.compile(
 )
 
 TYPE_EMOJI = {
-    "class_test": "📝",
+    "class_test_1": "📝",
+    "class_test_2": "📝",
     "end_sem": "📄",
     "bundle": "📦",
     "notes": "📖",

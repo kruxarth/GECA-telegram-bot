@@ -6,9 +6,10 @@ import httpx
 logger = logging.getLogger(__name__)
 
 DOC_TYPE_LABELS = {
-    "class_test": "Class Test",
+    "class_test_1": "Class Test 1",
+    "class_test_2": "Class Test 2",
     "end_sem": "End Sem PYQ",
-    "bundle": "Paper Set",
+    "bundle": "Paper Bundle",
     "notes": "Notes",
 }
 
