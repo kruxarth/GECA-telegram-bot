@@ -8,7 +8,7 @@ WELCOME = (
     "Available branches: MECH · ENTC · EEP · CSE · MCA · MTECH · IT · CIVIL\n\n"
     "Use /search to find documents.\n\n"
     "Example:\n"
-    "  /search CSE sem 5 2024\n\n"
+    "  /search CSE sem 4 2024\n\n"
     "Type /help for full usage guide."
 )
 
@@ -25,8 +25,8 @@ HELP = (
     "  • sem n    — semester number (1–8)\n"
     "  • year     — optional, filter to a specific year\n\n"
     "Examples:\n"
-    "  /search CSE sem 5\n"
-    "  /search CSE sem 5 2024\n"
+    "  /search CSE sem 4\n"
+    "  /search CSE sem 3 2024\n"
     "  /search MECH sem 3\n"
     "  /search ENTC sem 4 2023\n\n"
     "DOCUMENT TYPES\n"

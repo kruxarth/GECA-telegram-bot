@@ -6,7 +6,7 @@ A Telegram bot for students of **Government College of Engineering, Aurangabad (
 
 ## What It Does
 
-- Students send `/search CSE sem 5 2024` and get a list of matching documents as inline buttons.
+- Students send `/search CSE sem 4 2024` and get a list of matching documents as inline buttons.
 - Tapping a button delivers the file (PDF, etc.) straight into the chat — no links, no redirects.
 - An admin uses `/upload` to add new documents through a guided conversation flow.
 - All document metadata is stored in Supabase; files are stored as Telegram `file_id`s (Telegram hosts the actual files).
