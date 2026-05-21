@@ -30,8 +30,11 @@ python-bot/
 ├── .env                     # Secrets — NOT committed
 ├── .env.example             # Template — committed, fill in and rename to .env
 ├── requirements.txt
-└── architecture.md          # Detailed architecture notes
-```
+├── architecture.md         # Detailed repo/flow notes for future contributors and agents
+├── scripts/
+│   └── keepalive_ping.py   # Sends a single keepalive request to the deployed app
+└── .github/workflows/
+    └── keepalive.yml       # Scheduled GitHub Actions ping every 12 hours
 
 ### Tech Stack
 
@@ -148,7 +151,10 @@ The bot starts in **polling mode** when `WEBHOOK_URL` is empty — no public URL
 
 The bot will register its webhook on startup and switch to webhook mode automatically.
 
+<<<<<<< HEAD
 > **Free tier note:** Render spins down the service after 15 min of inactivity. The first message after a cold start takes ~30 s. Use [UptimeRobot](https://uptimerobot.com) (free) to keep it warm if needed.
+=======
+
 
 ---
 
@@ -180,6 +186,13 @@ See `.env.example` for a full template.
 | `WEBHOOK_URL` | Public URL for webhook mode; leave empty for local polling |
 | `PORT` | HTTP port (set automatically by Render) |
 
+<<<<<<< HEAD
+=======
+## Repo Notes
+
+- See [architecture.md](/home/krutarth/coding/pp/python-bot/architecture.md) for the real module-level architecture and request flows.
+
+>>>>>>> 99cd058 (script to prevent bot from dying during in activity)
 ---
 
 *College project — Government College of Engineering, Aurangabad (GECA)*
