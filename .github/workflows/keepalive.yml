@@ -1,0 +1,32 @@
+name: Keepalive Ping
+
+on:
+  schedule:
+    - cron: "0 */12 * * *"
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send keepalive request
+        env:
+          KEEPALIVE_URL: ${{ secrets.KEEPALIVE_URL }}
+        run: |
+          if [ -z "$KEEPALIVE_URL" ]; then
+            echo "Missing KEEPALIVE_URL GitHub secret" >&2
+            exit 1
+          fi
+
+          status=$(curl -sS -L -o /dev/null -w "%{http_code}" --max-time 90 "$KEEPALIVE_URL")
+          echo "HTTP status: $status"
+
+          case "$status" in
+            2*|3*|4*)
+              exit 0
+              ;;
+            *)
+              echo "Keepalive request failed with status $status" >&2
+              exit 1
+              ;;
+          esac
