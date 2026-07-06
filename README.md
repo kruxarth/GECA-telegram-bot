@@ -6,10 +6,31 @@ A Telegram bot for students of **Government College of Engineering, Aurangabad (
 
 ## What It Does
 
-- Students send `/search CSE sem 4 2025` and get a list of matching documents as inline buttons.
+- Students type queries in natural language ("CSE sem 4", "end sem papers for MECH sem 5") and get matching documents as inline buttons.
 - Tapping a button delivers the file (PDF, etc.) straight into the chat — no links, no redirects.
 - An admin uses `/upload` to add new documents through a guided conversation flow.
 - All document metadata is stored in Supabase; files are stored as Telegram `file_id`s (Telegram hosts the actual files).
+
+---
+
+## Natural Language Search
+
+The bot understands plain English queries without the `/search` prefix. You can type:
+
+```
+CSE sem 4 2025
+end sem papers for MECH sem 5
+3rd sem IT notes
+Mechanical sem 6 ct1
+got any cs papers for sem 3
+```
+
+It extracts branch, semester, year, and document type using a keyword-based parser — no LLM, no API costs. If the bot doesn't understand a query, it asks for clarification and remembers the correction for next time (self-improving via a `learned_patterns` table).
+
+You can still use the `/search` command format too:
+```
+/search CSE sem 4 2025
+```
 
 ---
 
@@ -21,20 +42,23 @@ python-bot/
 │   ├── main.py              # Entry point: registers handlers, runs polling or webhook
 │   ├── handlers/
 │   │   ├── start.py         # /start and /help
-│   │   ├── search.py        # /search command — queries Supabase, returns inline buttons
+│   │   ├── search.py        # NL search + /search command + plaintext handler
 │   │   ├── callbacks.py     # Inline button handler — fetches and sends the file
 │   │   ├── upload.py        # /upload — multi-step ConversationHandler (uploaders only)
 │   │   └── manage.py        # /adduploader, /removeuploader, /uploaders (primary admin only)
 │   └── services/
-│       └── database.py      # Supabase REST API calls (insert, search, get, uploader list)
+│       ├── database.py      # Supabase REST API calls (documents, uploaders, learned_patterns)
+│       └── nlp.py           # Keyword-based NL query extraction + self-improving learned patterns
 ├── .env                     # Secrets — NOT committed
 ├── .env.example             # Template — committed, fill in and rename to .env
 ├── requirements.txt
-├── architecture.md         # Detailed repo/flow notes for future contributors and agents
+├── PLAN.md                  # Full implementation plan for the NL system
+├── architecture.md          # Detailed repo/flow notes for future contributors and agents
 ├── scripts/
-│   └── keepalive_ping.py   # Sends a single keepalive request to the deployed app
+│   └── keepalive_ping.py    # Sends a single keepalive request to the deployed app
 └── .github/workflows/
-    └── keepalive.yml       # Scheduled GitHub Actions ping every 15 minutes
+    └── keepalive.yml        # Scheduled GitHub Actions ping every 14 minutes
+```
 
 ### Tech Stack
 
@@ -49,15 +73,30 @@ python-bot/
 ### Data Flow
 
 ```
-User: /search Physics sem 2
-  └─→ search.py parses query (subject, semester, optional year)
+User: CSE sem 4 2025  (or any NL phrasing)
+  └─→ nlp.py keyword scanner extracts {subject: CSE, semester: 4, year: 2025}
       └─→ database.search_documents() — ilike match against Supabase
           └─→ results shown as inline buttons
+
+If the query is not understood:
+  └─→ bot asks for clarification → stores the mapping in learned_patterns table
+      └─→ same query works automatically next time
 
 User taps a button  (callback_data = "dl:<uuid>")
   └─→ callbacks.py fetches document row from Supabase
       └─→ bot.send_document(file_id=...) — Telegram delivers the file
 ```
+
+### NL Extraction Pipeline
+
+```
+query → Tier 1: Regex patterns (sub-millisecond)
+       → Tier 2: Keyword scanner (milliseconds)
+       → Tier 3: Fuzzy typo matching
+       → Tier 4: Learned patterns from past clarifications (DB-backed)
+```
+
+Zero external APIs. Zero cost. Stdlib-only (`re` + `difflib`).
 
 ### Upload & Access Control
 
@@ -81,11 +120,11 @@ The primary admin adds/removes uploaders via bot commands — no redeployment ne
 
 - Python 3.11+
 - A Telegram bot token from [@BotFather](https://t.me/BotFather)
-- A [Supabase](https://supabase.com) project with a `documents` table (see below)
+- A [Supabase](https://supabase.com) project with the tables below
 
 ### Supabase Tables
 
-Run both in your Supabase SQL editor:
+Run these in your Supabase SQL editor:
 
 ```sql
 create table documents (
@@ -93,7 +132,7 @@ create table documents (
   file_id       text not null,
   file_name     text not null,
   subject       text not null,
-  semester      int  not null,
+  semester      int,
   year          int,
   doc_type      text not null,
   uploaded_by   bigint,
@@ -104,6 +143,19 @@ create table uploaders (
   user_id       bigint primary key,
   added_at      timestamptz default now()
 );
+
+create table learned_patterns (
+  id            uuid primary key default gen_random_uuid(),
+  tokens        text[] not null,
+  subject       text not null,
+  semester      int,
+  year          int,
+  doc_type      text,
+  source_query  text not null,
+  learned_at    timestamptz default now()
+);
+
+create index idx_learned_patterns_tokens on learned_patterns using gin (tokens);
 ```
 
 ### Setup
@@ -151,10 +203,7 @@ The bot starts in **polling mode** when `WEBHOOK_URL` is empty — no public URL
 
 The bot will register its webhook on startup and switch to webhook mode automatically.
 
-
-> **Free tier note:** Render spins down the service after 15 min of inactivity. The first message after a cold start takes ~30 s. Use [UptimeRobot](https://uptimerobot.com) (free) to keep it warm if needed.
-
-
+> **Free tier note:** Render spins down the service after 15 min of inactivity. The keepalive workflow pings the app every 14 minutes (at minutes 0, 14, 28, 42, 56 of every hour) so it never actually spins down.
 
 ---
 
@@ -164,7 +213,7 @@ The bot will register its webhook on startup and switch to webhook mode automati
 |---|---|
 | `/start` | Introduction and quick-start |
 | `/help` | Full usage guide with examples |
-| `/search <branch/subject> sem <n> [year]` | Search for documents |
+| `/search <query>` | Search for documents (or just type your query without `/search`) |
 | `/upload` | *(Uploaders only)* Upload a new document |
 | `/cancel` | Cancel an in-progress upload |
 | `/adduploader <user_id>` | *(Primary admin only)* Grant upload access |
@@ -186,10 +235,11 @@ See `.env.example` for a full template.
 | `WEBHOOK_URL` | Public URL for webhook mode; leave empty for local polling |
 | `PORT` | HTTP port (set automatically by Render) |
 
+---
 
 ## Repo Notes
 
-- See [architecture.md](/home/krutarth/coding/pp/python-bot/architecture.md) for the real module-level architecture and request flows.
-
+- See [architecture.md](architecture.md) for the real module-level architecture and request flows.
+- See [PLAN.md](PLAN.md) for the full implementation plan and design decisions behind the natural language system.
 
 *College project — Government College of Engineering, Aurangabad (GECA)*
