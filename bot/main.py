@@ -7,7 +7,7 @@ from telegram.ext import Application, CallbackQueryHandler, CommandHandler, Mess
 
 from bot.handlers.callbacks import handle_download
 from bot.handlers.manage import add_uploader, list_uploaders, remove_uploader
-from bot.handlers.search import handle_plaintext, search_cmd
+from bot.handlers.search import handle_nl_confirm, handle_plaintext, search_cmd
 from bot.handlers.start import help_cmd, start
 from bot.handlers.upload import upload_handler
 
@@ -36,6 +36,7 @@ def main() -> None:
     app.add_handler(CommandHandler("adduploader", add_uploader))
     app.add_handler(CommandHandler("removeuploader", remove_uploader))
     app.add_handler(CommandHandler("uploaders", list_uploaders))
+    app.add_handler(CallbackQueryHandler(handle_nl_confirm, pattern=r"^nl_"))
     app.add_handler(CallbackQueryHandler(handle_download, pattern=r"^dl:"))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_plaintext))
 

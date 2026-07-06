@@ -109,9 +109,9 @@ def _build_summary(params: dict) -> str:
     return " \u00b7 ".join(parts)
 
 
-async def _execute_search(
-    update: Update,
+async def _do_search(
     context: ContextTypes.DEFAULT_TYPE,
+    chat_id: int,
     params: dict,
     source_text: str,
 ) -> None:
@@ -120,27 +120,25 @@ async def _execute_search(
     year = params.get("year")
     doc_type = params.get("doc_type")
 
-    user = update.effective_user
     logger.info(
-        "SEARCH | user=%s (@%s) | raw=%r | subject=%s sem=%s year=%s type=%s",
-        user.id, user.username or "no_username", source_text,
-        subject, semester, year, doc_type,
+        "SEARCH | chat=%s | raw=%r | subject=%s sem=%s year=%s type=%s",
+        chat_id, source_text, subject, semester, year, doc_type,
     )
 
     summary = _build_summary(params)
-    msg = await update.message.reply_text(f"Searching for {summary}\u2026")
+    msg = await context.bot.send_message(chat_id, f"Searching for {summary}\u2026")
 
     try:
         results = await database.search_documents(subject, semester, year, doc_type)
     except Exception as e:
         logger.error(
-            "SEARCH FAILED | user=%s | params=%r | error=%s", user.id, params, e,
+            "SEARCH FAILED | chat=%s | params=%r | error=%s", chat_id, params, e,
         )
         await msg.edit_text("Search failed. Please try again.")
         return
 
     if not results:
-        logger.info("SEARCH NO RESULTS | user=%s | params=%r", user.id, params)
+        logger.info("SEARCH NO RESULTS | chat=%s | params=%r", chat_id, params)
         await msg.edit_text(
             f"No documents found for {summary}.\n"
             "Try a different subject name or semester."
@@ -148,8 +146,8 @@ async def _execute_search(
         return
 
     logger.info(
-        "SEARCH HIT | user=%s | params=%r | results=%d",
-        user.id, params, len(results),
+        "SEARCH HIT | chat=%s | params=%r | results=%d",
+        chat_id, params, len(results),
     )
 
     text = f"Found {len(results)} result(s) for {summary}:\n\n"
@@ -167,6 +165,15 @@ async def _execute_search(
         ])
 
     await msg.edit_text(text.strip(), reply_markup=InlineKeyboardMarkup(buttons))
+
+
+async def _execute_search(
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE,
+    params: dict,
+    source_text: str,
+) -> None:
+    await _do_search(context, update.effective_chat.id, params, source_text)
 
 
 # ---- /search command ----
@@ -220,8 +227,15 @@ async def handle_plaintext(update: Update, context: ContextTypes.DEFAULT_TYPE) -
             )
             return
 
-        await nlp.store_learned_pattern(pending, structured)
-        await _execute_search(update, context, structured, pending)
+        summary = _build_summary(structured)
+        context.user_data["nl_confirm"] = {"original": pending, "params": structured}
+        await update.message.reply_text(
+            f"Got it \N{en dash} {summary}. Is that right?",
+            reply_markup=InlineKeyboardMarkup([[
+                InlineKeyboardButton("Yes \N{thumbs up sign}", callback_data="nl_yes"),
+                InlineKeyboardButton("No, try again \N{leftwards arrow with hook}", callback_data="nl_no"),
+            ]]),
+        )
         return
 
     courtesy = _check_courtesy_reply(text)
@@ -236,3 +250,24 @@ async def handle_plaintext(update: Update, context: ContextTypes.DEFAULT_TYPE) -
         return
 
     await _execute_search(update, context, params, text)
+
+
+# ---- NL confirmation callback (Yes / No buttons) ----
+
+async def handle_nl_confirm(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    query = update.callback_query
+    await query.answer()
+
+    confirm = context.user_data.pop("nl_confirm", None)
+    if not confirm:
+        await query.edit_message_text("This confirmation has expired. Please try your search again.")
+        return
+
+    if query.data == "nl_yes":
+        await query.edit_message_text("Got it! \N{thumbs up sign}")
+        await nlp.store_learned_pattern(confirm["original"], confirm["params"])
+        await _do_search(context, query.message.chat_id, confirm["params"], confirm["original"])
+    else:
+        context.user_data["nl_pending"] = confirm["original"]
+        context.user_data.pop("nl_pending_retry", None)
+        await query.edit_message_text(CLARIFY_PROMPT)
