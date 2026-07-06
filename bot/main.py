@@ -3,11 +3,11 @@ import logging
 import os
 
 from dotenv import load_dotenv
-from telegram.ext import Application, CallbackQueryHandler, CommandHandler
+from telegram.ext import Application, CallbackQueryHandler, CommandHandler, MessageHandler, filters
 
 from bot.handlers.callbacks import handle_download
 from bot.handlers.manage import add_uploader, list_uploaders, remove_uploader
-from bot.handlers.search import search
+from bot.handlers.search import handle_plaintext, search_cmd
 from bot.handlers.start import help_cmd, start
 from bot.handlers.upload import upload_handler
 
@@ -17,7 +17,6 @@ logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
 )
-# Silence noisy HTTP-level logs from httpx and telegram internals
 logging.getLogger("httpx").setLevel(logging.WARNING)
 logging.getLogger("httpcore").setLevel(logging.WARNING)
 logging.getLogger("telegram").setLevel(logging.WARNING)
@@ -33,11 +32,12 @@ def main() -> None:
     app.add_handler(upload_handler)  # must be before generic handlers
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("help", help_cmd))
-    app.add_handler(CommandHandler("search", search))
+    app.add_handler(CommandHandler("search", search_cmd))
     app.add_handler(CommandHandler("adduploader", add_uploader))
     app.add_handler(CommandHandler("removeuploader", remove_uploader))
     app.add_handler(CommandHandler("uploaders", list_uploaders))
     app.add_handler(CallbackQueryHandler(handle_download, pattern=r"^dl:"))
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_plaintext))
 
     if WEBHOOK_URL:
         app.run_webhook(
