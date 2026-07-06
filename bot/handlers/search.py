@@ -1,4 +1,5 @@
 import logging
+import re
 
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import ContextTypes
@@ -35,10 +36,64 @@ CLARIFY_PROMPT = (
 )
 
 CLARIFY_RETRY = (
-    "Still couldn\u2019t parse that.\n\n"
+    "Still couldn\N{right single quotation mark}t parse that.\n\n"
     "Please use this exact format:  <branch> sem <number>\n"
     "Example:  CSE sem 4"
 )
+
+# ---- courtesy replies (greetings / help / thanks) ----
+
+GREETING_RE = re.compile(
+    r"^(hi|hello|hey|yo|sup|good\s+(morning|afternoon|evening)|heya|helo|hii)[\s!.]*$",
+    re.IGNORECASE,
+)
+
+HELP_INTENT_RE = re.compile(
+    r"(what\s+(can\s+)?(you|u|this\s+bot)\s+(do|do\?)|how\s+(to|does?\s+(this|it|u))\s+(use|work|search)|help\s+me|what\s+is\s+this)",
+    re.IGNORECASE,
+)
+
+THANKS_RE = re.compile(
+    r"^(thanks|thank\s*(you|u|s)|thx|ty|tyvm|ok|okay|nice|good|great|awesome|cool|perfect|done)[\s!.]*$",
+    re.IGNORECASE,
+)
+
+GREETING_REPLY = (
+    "Hey there! \N{waving hand sign}\n\n"
+    "I\N{right single quotation mark}m the GECA Study Bot. I can find past question papers "
+    "and study material from your college. Just type what you need:\n\n"
+    "  CSE sem 4 2025\n"
+    "  end sem papers for MECH sem 5\n"
+    "  3rd sem IT notes\n\n"
+    "Branches: MECH \N{middle dot} ENTC \N{middle dot} EEP \N{middle dot} CSE \N{middle dot} MCA \N{middle dot} MTECH \N{middle dot} IT \N{middle dot} CIVIL\n\n"
+    "Type /help for the full guide."
+)
+
+HELP_REPLY = (
+    "I can find past question papers and study material for GECA students.\n\n"
+    "Just type what you need in plain English:\n\n"
+    "  CSE sem 4\n"
+    "  end sem papers for MECH sem 5\n"
+    "  class test 1 IT sem 3\n"
+    "  Mechanical sem 6 notes\n\n"
+    "I understand branch abbreviations (mech, cs, entc), doc types (end sem, pyq, ct1, notes, bundle), "
+    "and I learn new phrases over time.\n\n"
+    "Type /help for all commands and details."
+)
+
+THANKS_REPLY = (
+    "Happy to help! Let me know if you need anything else. \N{thumbs up sign}"
+)
+
+
+def _check_courtesy_reply(text: str) -> str | None:
+    if GREETING_RE.match(text):
+        return GREETING_REPLY
+    if HELP_INTENT_RE.search(text):
+        return HELP_REPLY
+    if THANKS_RE.match(text):
+        return THANKS_REPLY
+    return None
 
 
 # ---- shared search execution ----
@@ -143,6 +198,16 @@ async def handle_plaintext(update: Update, context: ContextTypes.DEFAULT_TYPE) -
     retry_count = context.user_data.pop("nl_pending_retry", 0)
 
     if pending is not None:
+        courtesy = _check_courtesy_reply(text)
+        if courtesy:
+            await update.message.reply_text(courtesy)
+            context.user_data["nl_pending"] = pending
+            context.user_data["nl_pending_retry"] = retry_count
+            await update.message.reply_text(
+                "Also, about your earlier query \N{en dash} what subject and semester? (e.g., CSE sem 4)"
+            )
+            return
+
         structured = nlp.extract_search_params_static(text)
         if not structured or "subject" not in structured:
             if retry_count < 1:
@@ -157,6 +222,11 @@ async def handle_plaintext(update: Update, context: ContextTypes.DEFAULT_TYPE) -
 
         await nlp.store_learned_pattern(pending, structured)
         await _execute_search(update, context, structured, pending)
+        return
+
+    courtesy = _check_courtesy_reply(text)
+    if courtesy:
+        await update.message.reply_text(courtesy)
         return
 
     params = await nlp.extract_search_params(text)
