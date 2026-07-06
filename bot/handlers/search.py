@@ -9,11 +9,11 @@ from bot.services.database import DOC_TYPE_LABELS
 logger = logging.getLogger(__name__)
 
 TYPE_EMOJI = {
-    "class_test_1": "\ud83d\udcdd",
-    "class_test_2": "\ud83d\udcdd",
-    "end_sem": "\ud83d\udcc4",
-    "bundle": "\ud83d\udce6",
-    "notes": "\ud83d\udcd6",
+    "class_test_1": "\U0001F4DD",
+    "class_test_2": "\U0001F4DD",
+    "end_sem": "\U0001F4C4",
+    "bundle": "\U0001F4E6",
+    "notes": "\U0001F4D6",
 }
 
 USAGE_TEXT = (
@@ -100,7 +100,7 @@ async def _execute_search(
     text = f"Found {len(results)} result(s) for {summary}:\n\n"
     buttons = []
     for doc in results:
-        emoji = TYPE_EMOJI.get(doc["doc_type"], "\ud83d\udcc4")
+        emoji = TYPE_EMOJI.get(doc["doc_type"], "\U0001F4C4")
         label = DOC_TYPE_LABELS.get(doc["doc_type"], doc["doc_type"])
         year_tag = f" {doc['year']}" if doc.get("year") else ""
         text += f"{emoji} {label}{year_tag} \u2014 {doc['file_name']}\n"
