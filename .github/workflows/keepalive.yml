@@ -2,7 +2,7 @@ name: Keepalive Ping
 
 on:
   schedule:
-    - cron: "0 */12 * * *"
+    - cron: "*/15 * * * *"
   workflow_dispatch:
 
 jobs:

@@ -34,7 +34,7 @@ python-bot/
 ├── scripts/
 │   └── keepalive_ping.py   # Sends a single keepalive request to the deployed app
 └── .github/workflows/
-    └── keepalive.yml       # Scheduled GitHub Actions ping every 12 hours
+    └── keepalive.yml       # Scheduled GitHub Actions ping every 15 minutes
 
 ### Tech Stack
 
